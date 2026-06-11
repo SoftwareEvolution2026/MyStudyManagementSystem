@@ -3,6 +3,7 @@ package com.sms.study_management.service;
 
 import com.sms.study_management.dto.LoginRequest;
 import com.sms.study_management.dto.RegisterRequest;
+import com.sms.study_management.model.User;
 import com.sms.study_management.repository.UserRepository;
 import com.sms.study_management.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
