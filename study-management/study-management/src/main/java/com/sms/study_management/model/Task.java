@@ -23,7 +23,8 @@ public class Task {
 
     @Column(nullable = false)
     private String status = "PENDING"; // PENDING, IN_PROGRESS, DONE
-
+    @Column(nullable = false)
+    private String priority = "MEDIUM";
     private LocalDate dueDate;
     private LocalDateTime createdAt = LocalDateTime.now();
 }
