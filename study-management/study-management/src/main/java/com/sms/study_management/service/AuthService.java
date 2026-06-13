@@ -3,6 +3,7 @@ package com.sms.study_management.service;
 
 import com.sms.study_management.dto.LoginRequest;
 import com.sms.study_management.dto.RegisterRequest;
+import com.sms.study_management.exception.ResourceNotFoundException;
 import com.sms.study_management.model.User;
 import com.sms.study_management.repository.UserRepository;
 import com.sms.study_management.security.JwtTokenProvider;
@@ -21,10 +22,12 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
 
     public String register(RegisterRequest req) {
-        if (userRepository.existsByEmail(req.getEmail()))
-            throw new RuntimeException("Email already in use");
-        if (userRepository.existsByUsername(req.getUsername()))
-            throw new RuntimeException("Username already taken");
+        if (userRepository.existsByEmail(req.getEmail())) {
+            throw new IllegalArgumentException("Email already in use");
+        }
+        if (userRepository.existsByUsername(req.getUsername())) {
+            throw new IllegalArgumentException("Username already taken");
+        }
 
         User user = User.builder()
                 .username(req.getUsername())
@@ -36,8 +39,15 @@ public class AuthService {
     }
 
     public String login(LoginRequest req) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(req.getUsername(), req.getPassword()));
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(req.getUsername(), req.getPassword()));
+        } catch (RuntimeException ex) {
+            throw new BadCredentialsException("Invalid username or password", ex);
+        }
+
+        userRepository.findByUsername(req.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         return tokenProvider.generateToken(req.getUsername());
     }
 }

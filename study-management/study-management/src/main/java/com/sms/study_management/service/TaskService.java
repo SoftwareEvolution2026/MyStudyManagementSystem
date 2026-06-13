@@ -2,9 +2,11 @@ package com.sms.study_management.service;
 
 import com.sms.study_management.model.Task;
 import com.sms.study_management.model.User;
+import com.sms.study_management.exception.ResourceNotFoundException;
 import com.sms.study_management.repository.TaskRepository;
 import com.sms.study_management.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
@@ -17,7 +19,7 @@ public class TaskService {
 
     private User getUser(String username) {
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
     public List<Task> getAllTasks(String username) {
@@ -31,9 +33,9 @@ public class TaskService {
 
     public Task updateTask(String username, Long taskId, Task updated) {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
         if (!task.getUser().getId().equals(getUser(username).getId()))
-            throw new RuntimeException("Unauthorized");
+            throw new AccessDeniedException("Unauthorized");
         task.setTitle(updated.getTitle());
         task.setDescription(updated.getDescription());
         task.setStatus(updated.getStatus());
@@ -43,9 +45,9 @@ public class TaskService {
 
     public void deleteTask(String username, Long taskId) {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
         if (!task.getUser().getId().equals(getUser(username).getId()))
-            throw new RuntimeException("Unauthorized");
+            throw new AccessDeniedException("Unauthorized");
         taskRepository.delete(task);
     }
 }

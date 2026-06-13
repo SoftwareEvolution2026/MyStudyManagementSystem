@@ -1,6 +1,7 @@
 package com.sms.study_management.service;
 
 
+import com.sms.study_management.exception.ResourceNotFoundException;
 import com.sms.study_management.model.PomodoroLog;
 import com.sms.study_management.model.User;
 import com.sms.study_management.repository.PomodoroRepository;
@@ -19,7 +20,7 @@ public class PomodoroService {
 
     private User getUser(String username) {
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
     public PomodoroLog logSession(String username, Integer workMinutes, Integer breakMinutes) {
