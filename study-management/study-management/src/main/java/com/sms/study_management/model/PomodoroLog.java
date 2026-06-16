@@ -19,6 +19,10 @@ public class PomodoroLog {
     @JoinColumn(name = "session_id")
     private StudySession session;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "task_id")
+    private Task task;
+
     private Integer workMinutes = 25;
     private Integer breakMinutes = 5;
     private LocalDateTime loggedAt = LocalDateTime.now();
