@@ -1,0 +1,45 @@
+### OS ###
+.DS_Store
+Thumbs.db
+desktop.ini
+
+### IDE ###
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+.kotlin/
+
+### Java / Maven (backend) ###
+backend/target/
+!backend/**/src/main/**/target/
+!backend/**/src/test/**/target/
+backend/HELP.md
+backend/.mvn/wrapper/maven-wrapper.jar
+*.class
+*.jar
+!**/gradle/wrapper/gradle-wrapper.jar
+!**/.mvn/wrapper/maven-wrapper.jar
+
+### Gradle / Android (frontend) ###
+frontend/build/
+frontend/app/build/
+frontend/.gradle/
+frontend/local.properties
+frontend/captures/
+frontend/.externalNativeBuild/
+frontend/.cxx/
+*.apk
+*.aab
+
+### Environment / secrets ###
+.env
+.env.*
+*.env
+application-local.properties
+application-secrets.properties
+
+### Logs ###
+*.log
+logs/
