@@ -17,6 +17,7 @@ import androidx.navigation.NavController
 import com.sms.app.data.model.Task
 import com.sms.app.userinterface.components.BottomNavBar
 import java.time.LocalDate
+import java.time.format.DateTimeParseException
 
 @Composable
 fun TasksScreen(navController: NavController, vm: TaskViewModel = viewModel()) {
@@ -33,6 +34,9 @@ fun TasksScreen(navController: NavController, vm: TaskViewModel = viewModel()) {
     val context = LocalContext.current
 
     val snackbarHostState = remember { SnackbarHostState() }
+    val orderedTasks by remember(tasks) {
+        derivedStateOf { tasks.sortedWith(taskPriorityComparator()) }
+    }
 
     LaunchedEffect(error) {
         error?.let {
@@ -72,7 +76,7 @@ fun TasksScreen(navController: NavController, vm: TaskViewModel = viewModel()) {
                 }
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(tasks, key = { it.id ?: 0L }) { task ->
+                    items(orderedTasks, key = { it.id ?: 0L }) { task ->
                         TaskCard(
                             task = task,
                             onMarkDone = { vm.markDone(task) },
@@ -172,6 +176,24 @@ fun TasksScreen(navController: NavController, vm: TaskViewModel = viewModel()) {
 fun TaskCard(task: Task, onMarkDone: () -> Unit, onDelete: () -> Unit) {
     val isDone = task.status == "DONE"
     val priority = task.priority ?: "MEDIUM"
+    val dueDate = task.dueDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    val today = LocalDate.now()
+    val dueLabel = when {
+        isDone -> "Completed"
+        dueDate == null -> null
+        dueDate.isBefore(today) -> "Overdue"
+        dueDate.isEqual(today) -> "Due today"
+        dueDate.isBefore(today.plusDays(3)) -> "Due soon"
+        else -> "Due $dueDate"
+    }
+    val dueColor = when {
+        isDone -> MaterialTheme.colorScheme.onSurfaceVariant
+        dueDate == null -> MaterialTheme.colorScheme.onSurfaceVariant
+        dueDate.isBefore(today) -> MaterialTheme.colorScheme.error
+        dueDate.isEqual(today) -> MaterialTheme.colorScheme.tertiary
+        dueDate.isBefore(today.plusDays(3)) -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
     val priorityColor = when (priority) {
         "HIGH"   -> MaterialTheme.colorScheme.error
         "MEDIUM" -> MaterialTheme.colorScheme.primary
@@ -199,6 +221,19 @@ fun TaskCard(task: Task, onMarkDone: () -> Unit, onDelete: () -> Unit) {
                         color = if (isDone) MaterialTheme.colorScheme.onSurfaceVariant
                         else MaterialTheme.colorScheme.onSurface
                     )
+                    if (dueLabel != null) {
+                        Surface(
+                            color = dueColor.copy(alpha = 0.12f),
+                            shape = MaterialTheme.shapes.small
+                        ) {
+                            Text(
+                                dueLabel,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = dueColor
+                            )
+                        }
+                    }
                     Surface(
                         color = priorityColor.copy(alpha = 0.12f),
                         shape = MaterialTheme.shapes.small
@@ -235,5 +270,42 @@ fun TaskCard(task: Task, onMarkDone: () -> Unit, onDelete: () -> Unit) {
                 )
             }
         }
+    }
+}
+
+private fun taskPriorityComparator(): Comparator<Task> {
+    return compareBy<Task> { taskSortBucket(it) }
+        .thenBy { taskDueDate(it) ?: LocalDate.MAX }
+        .thenByDescending { priorityScore(it.priority) }
+        .thenBy { it.title?.lowercase() ?: "" }
+}
+
+private fun taskSortBucket(task: Task): Int {
+    if (task.status == "DONE") return 4
+    val dueDate = taskDueDate(task) ?: return 3
+    val today = LocalDate.now()
+    return when {
+        dueDate.isBefore(today) -> 0
+        dueDate.isEqual(today) -> 1
+        dueDate.isBefore(today.plusDays(3)) -> 2
+        else -> 3
+    }
+}
+
+private fun taskDueDate(task: Task): LocalDate? {
+    val value = task.dueDate ?: return null
+    return try {
+        LocalDate.parse(value)
+    } catch (_: DateTimeParseException) {
+        null
+    }
+}
+
+private fun priorityScore(priority: String?): Int {
+    return when (priority) {
+        "HIGH" -> 3
+        "MEDIUM" -> 2
+        "LOW" -> 1
+        else -> 0
     }
 }
