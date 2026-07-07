@@ -1,10 +1,8 @@
 package com.sms.study_management.service;
 
-import com.sms.study_management.exception.ResourceNotFoundException;
 import com.sms.study_management.repository.PomodoroRepository;
 import com.sms.study_management.repository.SessionRepository;
 import com.sms.study_management.repository.TaskRepository;
-import com.sms.study_management.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,12 +17,10 @@ public class AnalyticsService {
 	private final TaskRepository taskRepository;
 	private final PomodoroRepository pomodoroRepository;
 	private final SessionRepository sessionRepository;
-	private final UserRepository userRepository;
+	private final CurrentUserService currentUserService;
 
 	public Map<String, Object> getWeeklyStats(String username) {
-		Long userId = userRepository.findByUsername(username)
-				.orElseThrow(() -> new ResourceNotFoundException("User not found"))
-				.getId();
+		Long userId = currentUserService.requireUser(username).getId();
 
 		LocalDateTime weekStart = LocalDateTime.now().minusDays(7);
 		LocalDateTime now = LocalDateTime.now();

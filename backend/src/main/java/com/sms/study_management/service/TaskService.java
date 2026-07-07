@@ -1,25 +1,25 @@
 package com.sms.study_management.service;
 
-import com.sms.study_management.model.Task;
-import com.sms.study_management.model.User;
-import com.sms.study_management.exception.ResourceNotFoundException;
-import com.sms.study_management.repository.TaskRepository;
-import com.sms.study_management.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
-import java.util.List;
+
+import com.sms.study_management.exception.ResourceNotFoundException;
+import com.sms.study_management.model.Task;
+import com.sms.study_management.repository.TaskRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class TaskService {
 
     private final TaskRepository taskRepository;
-    private final UserRepository userRepository;
+    private final CurrentUserService currentUserService;
 
-    private User getUser(String username) {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    private com.sms.study_management.model.User getUser(String username) {
+        return currentUserService.requireUser(username);
     }
 
     public List<Task> getAllTasks(String username) {

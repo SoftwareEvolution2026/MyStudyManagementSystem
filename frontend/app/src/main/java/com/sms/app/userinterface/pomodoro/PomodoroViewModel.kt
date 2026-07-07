@@ -7,8 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.sms.app.data.model.PomodoroCompleteRequest
 import com.sms.app.data.model.StudySession
 import com.sms.app.data.model.Task
-import com.sms.app.data.remote.RetrofitInstance
-import com.sms.app.util.TokenManager
+import com.sms.app.data.repository.StudyRepository
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import java.time.LocalDateTime
@@ -33,8 +32,7 @@ data class PomodoroState(
 
 class PomodoroViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val tokenManager = TokenManager(application)
-    private val api = RetrofitInstance.api
+    private val repository = StudyRepository(application)
 
     private val _state = MutableStateFlow(PomodoroState())
     val state: StateFlow<PomodoroState> = _state
@@ -78,34 +76,28 @@ class PomodoroViewModel(application: Application) : AndroidViewModel(application
         if (current.phase == PomodoroPhase.WORK) {
             viewModelScope.launch {
                 try {
-                    val token = tokenManager.tokenFlow.first()
-                    if (token != null) {
-                        val authHeader = "Bearer $token"
-                        // 1. Log Pomodoro with the linked task ID
-                        api.logPomodoro(
-                            authHeader,
-                            PomodoroCompleteRequest(
-                                current.workMinutes,
-                                current.breakMinutes,
-                                current.selectedTaskId
-                            )
+                    // 1. Log Pomodoro with the linked task ID
+                    repository.logPomodoro(
+                        PomodoroCompleteRequest(
+                            current.workMinutes,
+                            current.breakMinutes,
+                            current.selectedTaskId
                         )
+                    )
 
-                        // 2. Automatically create a linked Study Session
-                        val now = LocalDateTime.now()
-                        val startTime = now.minusMinutes(current.workMinutes.toLong())
-                        val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
+                    // 2. Automatically create a linked Study Session
+                    val now = LocalDateTime.now()
+                    val startTime = now.minusMinutes(current.workMinutes.toLong())
+                    val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
 
-                        api.createSession(
-                            authHeader,
-                            StudySession(
-                                subject = current.subject,
-                                startTime = startTime.format(formatter),
-                                endTime = now.format(formatter),
-                                durationMinutes = current.workMinutes
-                            )
+                    repository.createSession(
+                        StudySession(
+                            subject = current.subject,
+                            startTime = startTime.format(formatter),
+                            endTime = now.format(formatter),
+                            durationMinutes = current.workMinutes
                         )
-                    }
+                    )
                 } catch (e: Exception) {
                     Log.e("PomodoroViewModel", "Error logging session", e)
                     _state.update { it.copy(error = "Failed to log session to server") }
@@ -134,15 +126,10 @@ class PomodoroViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             _state.update { it.copy(isLoadingTasks = true) }
             try {
-                val token = tokenManager.tokenFlow.first()
-                if (token != null) {
-                    val tasks = api.getTasks("Bearer $token")
-                    // Filter to only show pending/in-progress tasks
-                    val filteredTasks = tasks.filter { it.status != "COMPLETED" }
-                    _state.update { it.copy(availableTasks = filteredTasks, isLoadingTasks = false) }
-                } else {
-                    _state.update { it.copy(isLoadingTasks = false) }
-                }
+                val tasks = repository.getTasks()
+                // Filter to only show pending/in-progress tasks
+                val filteredTasks = tasks.filter { it.status != "COMPLETED" }
+                _state.update { it.copy(availableTasks = filteredTasks, isLoadingTasks = false) }
             } catch (e: Exception) {
                 Log.e("PomodoroViewModel", "Error fetching tasks", e)
                 _state.update { it.copy(isLoadingTasks = false) }

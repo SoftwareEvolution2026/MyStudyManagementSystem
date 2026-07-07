@@ -4,7 +4,6 @@ import com.sms.study_management.exception.ResourceNotFoundException;
 import com.sms.study_management.model.StudySession;
 import com.sms.study_management.model.User;
 import com.sms.study_management.repository.SessionRepository;
-import com.sms.study_management.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -19,7 +18,7 @@ import java.util.List;
 public class SessionService {
 
     private final SessionRepository sessionRepository;
-    private final UserRepository userRepository;
+    private final CurrentUserService currentUserService;
 
     @Transactional(readOnly = true)
     public List<StudySession> getSessionsForUser(String username) {
@@ -61,8 +60,7 @@ public class SessionService {
 
     // Helper: Centralized user lookup
     private User findUserByUsername(String username) {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+        return currentUserService.requireUser(username);
     }
 
     // Helper: Validates session exists and belongs to the user
