@@ -5,8 +5,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.sms.app.data.model.StudySession
-import com.sms.app.data.remote.RetrofitInstance
-import com.sms.app.util.TokenManager
+import com.sms.app.data.repository.StudyRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -22,8 +21,7 @@ data class SessionUiState(
 
 class SessionViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val tokenManager = TokenManager(application)
-    private val api = RetrofitInstance.api
+    private val repository = StudyRepository(application)
 
     private val _uiState = MutableStateFlow(SessionUiState())
     val uiState: StateFlow<SessionUiState> = _uiState
@@ -32,21 +30,11 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
         fetchSessions()
     }
 
-    private suspend fun bearerToken(): String {
-        val token = tokenManager.tokenFlow.first()
-        return if (token.isNullOrBlank()) "" else "Bearer $token"
-    }
-
     fun fetchSessions() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
-                val token = bearerToken()
-                if (token.isBlank()) {
-                    _uiState.update { it.copy(errorMessage = "Not authenticated.") }
-                    return@launch
-                }
-                val response = api.getSessions(token)
+                val response = repository.getSessions()
                 _uiState.update { it.copy(sessions = response, errorMessage = null) }
             } catch (e: HttpException) {
                 val msg = when(e.code()) {

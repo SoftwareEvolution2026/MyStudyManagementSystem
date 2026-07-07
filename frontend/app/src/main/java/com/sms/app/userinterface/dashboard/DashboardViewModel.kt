@@ -6,9 +6,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.sms.app.data.model.StudySession
 import com.sms.app.data.model.WeeklyStats
-import com.sms.app.data.remote.RetrofitInstance
+import com.sms.app.data.repository.StudyRepository
 import com.sms.app.util.GoalsManager
-import com.sms.app.util.TokenManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -30,9 +29,8 @@ data class DashboardUiState(
 
 class DashboardViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val tokenManager = TokenManager(application)
     private val goalsManager = GoalsManager(application)
-    private val api = RetrofitInstance.api
+    private val repository = StudyRepository(application)
 
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState
@@ -43,23 +41,17 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val token = tokenManager.tokenFlow.first()
-                if (token != null) {
-                    val authHeader = "Bearer $token"
-                    val stats = api.getWeeklyStats(authHeader)
-                    val sessions = api.getSessions(authHeader)
-                    val goals = goalsManager.goalsFlow.first()
+                val stats = repository.getWeeklyStats()
+                val sessions = repository.getSessions()
+                val goals = goalsManager.goalsFlow.first()
 
-                    _uiState.value = _uiState.value.copy(
-                        stats = stats,
-                        todayStudyMinutes = calculateTodayStudyMinutes(sessions),
-                        currentStreakDays = calculateCurrentStreak(sessions),
-                        dailyStudyGoalMinutes = goals.dailyStudyGoalMinutes,
-                        weeklyTaskGoal = goals.weeklyTaskGoal
-                    )
-                } else {
-                    _uiState.value = _uiState.value.copy(error = "User not authenticated.")
-                }
+                _uiState.value = _uiState.value.copy(
+                    stats = stats,
+                    todayStudyMinutes = calculateTodayStudyMinutes(sessions),
+                    currentStreakDays = calculateCurrentStreak(sessions),
+                    dailyStudyGoalMinutes = goals.dailyStudyGoalMinutes,
+                    weeklyTaskGoal = goals.weeklyTaskGoal
+                )
             } catch (e: Exception) {
                 Log.e("DashboardViewModel", "Error loading dashboard stats", e)
                 _uiState.value = _uiState.value.copy(error = "Failed to load dashboard data.")

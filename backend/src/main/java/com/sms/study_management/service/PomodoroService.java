@@ -14,7 +14,6 @@ import com.sms.study_management.model.Task;
 import com.sms.study_management.model.User;
 import com.sms.study_management.repository.PomodoroRepository;
 import com.sms.study_management.repository.TaskRepository;
-import com.sms.study_management.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -23,12 +22,11 @@ import lombok.RequiredArgsConstructor;
 public class PomodoroService {
 
     private final PomodoroRepository pomodoroRepository;
-    private final UserRepository userRepository;
+    private final CurrentUserService currentUserService;
     private final TaskRepository taskRepository;
 
     private User getUser(String username) {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        return currentUserService.requireUser(username);
     }
 
     public PomodoroDto logSession(String username, Integer workMinutes, Integer breakMinutes, Long taskId) {

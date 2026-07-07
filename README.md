@@ -79,6 +79,6 @@ gradlew.bat installDebug      # Windows
 
 ## Contributing
 
-1. Create a feature branch from `main`.
+1. Create a feature branch from `dev`.
 2. Make your changes.
 3. Open a pull request describing what changed and why.
